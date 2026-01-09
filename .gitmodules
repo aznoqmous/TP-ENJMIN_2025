@@ -1,0 +1,7 @@
+[submodule "Deps/imgui"]
+	path = Deps/imgui
+	url = https://github.com/ocornut/imgui.git
+	branch = docking
+[submodule "Deps/DirectXTK"]
+	path = Deps/DirectXTK
+	url = https://github.com/microsoft/DirectXTK.git

@@ -1,10 +1,13 @@
+
 struct Input {
 	float3 pos : POSITION0;
+    float2 uv : TEXCOORD0;
 };
 
 struct Output {
 	float4 pos : SV_POSITION;
     float4 localPos : VPOS;
+    float2 uv : TEXCOORD0;
 };
 
 cbuffer ModelData : register(b0) { // b0 = VSSetConstantBuffers(0,…)
@@ -28,5 +31,6 @@ Output main(Input input) {
     
     output.pos = res;
     output.localPos = float4(input.pos, 1);
+    output.uv = input.uv;
 	return output;
 }

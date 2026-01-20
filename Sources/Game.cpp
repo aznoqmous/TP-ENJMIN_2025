@@ -9,6 +9,8 @@
 
 #include "PerlinNoise.hpp"
 #include "Engine/Shader.h"
+#include "Minicraft/Cube.h"
+#include "Engine/Texture.h"
 
 extern void ExitGame() noexcept;
 
@@ -18,7 +20,8 @@ using namespace DirectX::SimpleMath;
 using Microsoft::WRL::ComPtr;
 
 // Global stuff
-Shader* basicShader;
+Shader basicShader(L"basic");
+Texture terrain(L"terrain");
 
 CommonStates* commonStates;
 
@@ -30,20 +33,19 @@ struct CameraData {
 	Matrix projectionMatrix;
 };
 
-VertexBuffer<VertexLayout_Position> vertexBuffer;
-IndexBuffer indexBuffer;
 ConstantBuffer<ModelData> modelBuffer;
 ConstantBuffer<CameraData> cameraBuffer;
 
+Cube cube(Vector3::Forward * 3.0);
+
 // Game
 Game::Game() noexcept(false) {
-	m_deviceResources = std::make_unique<DeviceResources>(DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_D32_FLOAT, 2);
+	m_deviceResources = std::make_unique<DeviceResources>(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, DXGI_FORMAT_D32_FLOAT, 2);
 	m_deviceResources->RegisterDeviceNotify(this);
 
 }
 
 Game::~Game() {
-	delete basicShader;
 	delete commonStates;
 	g_inputLayouts.clear();
 }
@@ -60,38 +62,28 @@ void Game::Initialize(HWND window, int width, int height) {
 	m_deviceResources->CreateDeviceResources();
 	m_deviceResources->CreateWindowSizeDependentResources();
 
-	basicShader = new Shader(L"Basic");
-	basicShader->Create(m_deviceResources.get());
+	basicShader.Create(m_deviceResources.get());
 
 	auto device = m_deviceResources->GetD3DDevice();
 	commonStates = new CommonStates(device);
 
-	GenerateInputLayout<VertexLayout_Position>(m_deviceResources.get(), basicShader);
-
+	GenerateInputLayout<VertexLayout_PositionUV>(m_deviceResources.get(), &basicShader);
+	
 	// TP: allouer vertexBuffer ici
-
-	vertexBuffer.PushVertex({{-0.5,  0.5, 0}});
-	vertexBuffer.PushVertex({{ 0.5, -0.5, 0}});
-	vertexBuffer.PushVertex({{-0.5, -0.5, 0}});
-	vertexBuffer.PushVertex({{ 0.5,  0.5, 0}});
-	vertexBuffer.Create(m_deviceResources.get());
+	cube.Generate(m_deviceResources.get());
 	
-	indexBuffer.PushTriangle(0, 1, 2);
-	indexBuffer.PushTriangle(0, 3, 1);
-	indexBuffer.Create(m_deviceResources.get());
-	
-	/* Matrices */
 	Vector3 position = Vector3::Forward;
 	modelBuffer.Create(m_deviceResources.get());
-	modelBuffer.data.modelMatrix = Matrix::CreateTranslation(position);
 
 	cameraBuffer.Create(m_deviceResources.get());
 	float fov = 1.0;
 	float aspectRatio = (float)width / (float)height;
 	float nearPlane = 0.1;
-	float farPlane = 100.0;
-	cameraBuffer.data.viewMatrix = Matrix::CreateLookAt(Vector3::Backward, position, Vector3::Up).Transpose();
+	float farPlane = 1000.0;
+	cameraBuffer.data.viewMatrix = Matrix::CreateLookAt(Vector3::Backward, Vector3::Forward, Vector3::Up).Transpose();
 	cameraBuffer.data.projectionMatrix = Matrix::CreatePerspectiveFieldOfView(fov, aspectRatio, nearPlane, farPlane).Transpose();
+	
+	terrain.Create(m_deviceResources.get());
 }
 
 void Game::Tick() {
@@ -126,34 +118,37 @@ void Game::Render() {
 	auto depthStencil = m_deviceResources->GetDepthStencilView();
 	auto const viewport = m_deviceResources->GetScreenViewport();
 
-	context->ClearRenderTargetView(renderTarget, Colors::Black);
+	context->ClearRenderTargetView(renderTarget, ColorsLinear::CornflowerBlue);
 	context->ClearDepthStencilView(depthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	context->RSSetViewports(1, &viewport);
 	context->OMSetRenderTargets(1, &renderTarget, depthStencil);
 	
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	ApplyInputLayout<VertexLayout_Position>(m_deviceResources.get());
+	
+	ApplyInputLayout<VertexLayout_PositionUV>(m_deviceResources.get());
 
 	context->RSSetState(commonStates->CullNone());
 	//context->RSSetState(commonStates->Wireframe());
 	
-	basicShader->Apply(m_deviceResources.get());
+	basicShader.Apply(m_deviceResources.get());
 
-	// TP: Tracer votre vertex buffer ici
-	vertexBuffer.Apply(m_deviceResources.get());
-	indexBuffer.Apply(m_deviceResources.get());
+	terrain.Apply(m_deviceResources.get());
 
-	modelBuffer.data.modelMatrix = Matrix::CreateScale(abs(sin(m_timer.GetTotalSeconds()) * 0.5) + 0.5).Transpose();
-	modelBuffer.data.modelMatrix *= Matrix::CreateRotationZ(m_timer.GetTotalSeconds()).Transpose();
+	//modelBuffer.data.modelMatrix = Matrix::CreateScale(abs(sin(m_timer.GetTotalSeconds()) * 0.5) + 0.5).Transpose();
+	modelBuffer.data.modelMatrix = cube.GetModelMatrix().Transpose();
+	modelBuffer.data.modelMatrix *= Matrix::CreateRotationX(3.141592 / 4.0).Transpose();
+	modelBuffer.data.modelMatrix *= Matrix::CreateRotationZ(m_timer.GetTotalSeconds() * 3.0).Transpose();
+	modelBuffer.data.modelMatrix *= Matrix::CreateRotationY(m_timer.GetTotalSeconds() * 2.0).Transpose();
+
 	modelBuffer.UpdateBuffer(m_deviceResources.get());
-	modelBuffer.ApplyToVS(m_deviceResources.get());
-
+	
 	cameraBuffer.UpdateBuffer(m_deviceResources.get());
+	
+
+	modelBuffer.ApplyToVS(m_deviceResources.get(), 0);
 	cameraBuffer.ApplyToVS(m_deviceResources.get(), 1);
 
-
-	context->DrawIndexed(indexBuffer.Size(), 0, 0);
-
+	cube.Draw(m_deviceResources.get());
 
 	// envoie nos commandes au GPU pour etre afficher � l'�cran
 	m_deviceResources->Present();

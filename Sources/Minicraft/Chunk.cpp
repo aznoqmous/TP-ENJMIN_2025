@@ -20,12 +20,15 @@ void Chunk::Generate(DeviceResources* deviceRes)
 	vertexBuffer.Clear();
 	indexBuffer.Clear();
 
+	float sideTexture;
 	for (auto it : cubes) {
+		sideTexture = cubes.find(it.first + Vector3::Up) != cubes.end() ? 2 : 3;
+
 		if (cubes.find(it.first + Vector3::Left) == cubes.end()) {
-			PushFace(it.first + Vector3::Forward, Vector3::Up, Vector3::Backward, { 3, 0 });
+			PushFace(it.first + Vector3::Forward, Vector3::Up, Vector3::Backward, { sideTexture, 0 });
 		}
 		if (cubes.find(it.first + Vector3::Right) == cubes.end()) {
-			PushFace(it.first + Vector3::Right, Vector3::Up, Vector3::Forward, { 3, 0 });
+			PushFace(it.first + Vector3::Right, Vector3::Up, Vector3::Forward, { sideTexture, 0 });
 		}
 		if (cubes.find(it.first + Vector3::Up) == cubes.end()) {
 			PushFace(it.first + Vector3::Up, Vector3::Forward, Vector3::Right, { 0, 0 });
@@ -34,10 +37,10 @@ void Chunk::Generate(DeviceResources* deviceRes)
 			PushFace(it.first + Vector3::Zero, Vector3::Right, Vector3::Forward, { 2, 0 });
 		}
 		if (cubes.find(it.first + Vector3::Forward) == cubes.end()) {
-			PushFace(it.first + Vector3::Right + Vector3::Forward, Vector3::Up, Vector3::Left, { 3, 0 });
+			PushFace(it.first + Vector3::Right + Vector3::Forward, Vector3::Up, Vector3::Left, { sideTexture, 0 });
 		}
 		if (cubes.find(it.first + Vector3::Backward) == cubes.end()) {
-			PushFace(it.first + Vector3::Zero, Vector3::Up, Vector3::Right, { 3, 0 });
+			PushFace(it.first + Vector3::Zero, Vector3::Up, Vector3::Right, { sideTexture, 0 });
 		}
 	}
 
@@ -48,10 +51,11 @@ void Chunk::Generate(DeviceResources* deviceRes)
 void Chunk::PushFace(Vector3 pos, Vector3 up, Vector3 right, Vector2 tilePos) {
 	float tileCount = 16;
 	pos -= Vector3(size.x, size.y, size.z) / 2.0;
-	int i0 = vertexBuffer.PushVertex(VertexLayout_PositionUV(pos + up, (tilePos + Vector2(0, 0)) / tileCount));
-	int i1 = vertexBuffer.PushVertex(VertexLayout_PositionUV(pos + right, (tilePos + Vector2(1, 1)) / tileCount));
-	int i2 = vertexBuffer.PushVertex(VertexLayout_PositionUV(pos, (tilePos + Vector2(0, 1)) / tileCount));
-	int i3 = vertexBuffer.PushVertex(VertexLayout_PositionUV(pos + up + right, (tilePos + Vector2(1, 0)) / tileCount));
+	Vector3 normal = right.Cross(up);
+	int i0 = vertexBuffer.PushVertex(VertexLayout_PositionNormalUV(pos + up, normal, (tilePos + Vector2(0, 0)) / tileCount));
+	int i1 = vertexBuffer.PushVertex(VertexLayout_PositionNormalUV(pos + right, normal, (tilePos + Vector2(1, 1)) / tileCount));
+	int i2 = vertexBuffer.PushVertex(VertexLayout_PositionNormalUV(pos, normal, (tilePos + Vector2(0, 1)) / tileCount));
+	int i3 = vertexBuffer.PushVertex(VertexLayout_PositionNormalUV(pos + up + right, normal, (tilePos + Vector2(1, 0)) / tileCount));
 	indexBuffer.PushTriangle(i0, i1, i2);
 	indexBuffer.PushTriangle(i0, i3, i1);
 

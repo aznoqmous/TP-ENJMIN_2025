@@ -69,12 +69,12 @@ void Game::Initialize(HWND window, int width, int height) {
 	auto device = m_deviceResources->GetD3DDevice();
 	commonStates = new CommonStates(device);
 
-	GenerateInputLayout<VertexLayout_PositionUV>(m_deviceResources.get(), &basicShader);
-	
+	GenerateInputLayout<VertexLayout_PositionNormalUV>(m_deviceResources.get(), &basicShader);
+
 	// TP: allouer vertexBuffer ici
 	cube.Generate(m_deviceResources.get());
 	chunk.Generate(m_deviceResources.get());
-	
+
 	Vector3 position = Vector3::Forward;
 	modelBuffer.Create(m_deviceResources.get());
 
@@ -83,9 +83,9 @@ void Game::Initialize(HWND window, int width, int height) {
 	float aspectRatio = (float)width / (float)height;
 	float nearPlane = 0.1;
 	float farPlane = 1000.0;
-	cameraBuffer.data.viewMatrix = Matrix::CreateLookAt(Vector3::Backward, Vector3::Forward, Vector3::Up).Transpose();
+	cameraBuffer.data.viewMatrix = Matrix::CreateLookAt(Vector3::Backward + Vector3::Up * 16, Vector3::Forward * 100.0, Vector3::Up).Transpose();
 	cameraBuffer.data.projectionMatrix = Matrix::CreatePerspectiveFieldOfView(fov, aspectRatio, nearPlane, farPlane).Transpose();
-	
+
 	terrain.Create(m_deviceResources.get());
 }
 
@@ -101,9 +101,9 @@ void Game::Tick() {
 void Game::Update(DX::StepTimer const& timer) {
 	auto const kb = m_keyboard->GetState();
 	auto const ms = m_mouse->GetState();
-	
+
 	// add kb/mouse interact here
-	
+
 	if (kb.Escape)
 		ExitGame();
 
@@ -125,10 +125,10 @@ void Game::Render() {
 	context->ClearDepthStencilView(depthStencil, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	context->RSSetViewports(1, &viewport);
 	context->OMSetRenderTargets(1, &renderTarget, depthStencil);
-	
+
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	
-	ApplyInputLayout<VertexLayout_PositionUV>(m_deviceResources.get());
+
+	ApplyInputLayout<VertexLayout_PositionNormalUV>(m_deviceResources.get());
 
 	context->RSSetState(commonStates->CullNone());
 	//context->RSSetState(commonStates->Wireframe());
@@ -140,7 +140,6 @@ void Game::Render() {
 	//modelBuffer.data.modelMatrix = Matrix::CreateScale(abs(sin(m_timer.GetTotalSeconds()) * 0.5) + 0.5).Transpose();
 	modelBuffer.data.modelMatrix = Matrix::CreateTranslation(Vector3::Forward * 40.0).Transpose();
 
-	modelBuffer.data.modelMatrix *= Matrix::CreateRotationX(m_timer.GetTotalSeconds() * 2.0).Transpose();
 	modelBuffer.data.modelMatrix *= Matrix::CreateRotationY(m_timer.GetTotalSeconds() * 1.0).Transpose();
 
 	modelBuffer.UpdateBuffer(m_deviceResources.get());

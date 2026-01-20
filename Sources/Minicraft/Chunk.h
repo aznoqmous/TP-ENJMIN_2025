@@ -7,10 +7,10 @@ using namespace DirectX::SimpleMath;
 class Chunk {
 public:
 	std::map<Vector3, int> cubes;
-	VertexBuffer<VertexLayout_PositionUV> vertexBuffer;
+	VertexBuffer<VertexLayout_PositionNormalUV> vertexBuffer;
 	IndexBuffer indexBuffer;
 
-	Vector3 size = { 16, 384, 16 };
+	Vector3 size = { 32, 64, 32 };
 
 	Chunk() {};
 	

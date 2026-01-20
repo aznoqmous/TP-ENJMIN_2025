@@ -404,3 +404,5 @@ imgui.ini
 *.sln
 *.vcxproj
 *.vcxproj.filters
+
+enc_temp_folder

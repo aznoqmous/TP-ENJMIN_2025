@@ -9,6 +9,10 @@ private:
 	std::vector<TVertex> data;
 
 public:
+	void Clear() {
+		data.clear();
+	}
+
 	uint32_t PushVertex(const TVertex& v) {
 		data.push_back(v);
 		return data.size() - 1;
@@ -35,6 +39,10 @@ private:
 	std::vector<uint32_t> data;
 
 public:
+	void Clear() {
+		data.clear();
+	}
+
 	void PushTriangle(const uint32_t& a, const uint32_t& b, const uint32_t& c) {
 		data.push_back(a);
 		data.push_back(b);

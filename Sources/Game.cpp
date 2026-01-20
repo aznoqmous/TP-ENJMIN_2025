@@ -10,6 +10,7 @@
 #include "PerlinNoise.hpp"
 #include "Engine/Shader.h"
 #include "Minicraft/Cube.h"
+#include "Minicraft/Chunk.h"
 #include "Engine/Texture.h"
 
 extern void ExitGame() noexcept;
@@ -36,7 +37,8 @@ struct CameraData {
 ConstantBuffer<ModelData> modelBuffer;
 ConstantBuffer<CameraData> cameraBuffer;
 
-Cube cube(Vector3::Forward * 3.0);
+Cube cube(Vector3::Forward * 100.0);
+Chunk chunk;
 
 // Game
 Game::Game() noexcept(false) {
@@ -71,6 +73,7 @@ void Game::Initialize(HWND window, int width, int height) {
 	
 	// TP: allouer vertexBuffer ici
 	cube.Generate(m_deviceResources.get());
+	chunk.Generate(m_deviceResources.get());
 	
 	Vector3 position = Vector3::Forward;
 	modelBuffer.Create(m_deviceResources.get());
@@ -135,10 +138,10 @@ void Game::Render() {
 	terrain.Apply(m_deviceResources.get());
 
 	//modelBuffer.data.modelMatrix = Matrix::CreateScale(abs(sin(m_timer.GetTotalSeconds()) * 0.5) + 0.5).Transpose();
-	modelBuffer.data.modelMatrix = cube.GetModelMatrix().Transpose();
-	modelBuffer.data.modelMatrix *= Matrix::CreateRotationX(3.141592 / 4.0).Transpose();
-	modelBuffer.data.modelMatrix *= Matrix::CreateRotationZ(m_timer.GetTotalSeconds() * 3.0).Transpose();
-	modelBuffer.data.modelMatrix *= Matrix::CreateRotationY(m_timer.GetTotalSeconds() * 2.0).Transpose();
+	modelBuffer.data.modelMatrix = Matrix::CreateTranslation(Vector3::Forward * 40.0).Transpose();
+
+	modelBuffer.data.modelMatrix *= Matrix::CreateRotationX(m_timer.GetTotalSeconds() * 2.0).Transpose();
+	modelBuffer.data.modelMatrix *= Matrix::CreateRotationY(m_timer.GetTotalSeconds() * 1.0).Transpose();
 
 	modelBuffer.UpdateBuffer(m_deviceResources.get());
 	
@@ -148,7 +151,8 @@ void Game::Render() {
 	modelBuffer.ApplyToVS(m_deviceResources.get(), 0);
 	cameraBuffer.ApplyToVS(m_deviceResources.get(), 1);
 
-	cube.Draw(m_deviceResources.get());
+	//cube.Draw(m_deviceResources.get());
+	chunk.Draw(m_deviceResources.get());
 
 	// envoie nos commandes au GPU pour etre afficher � l'�cran
 	m_deviceResources->Present();

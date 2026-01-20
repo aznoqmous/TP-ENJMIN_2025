@@ -2,11 +2,17 @@
 #include "Cube.h"
 
 void Cube::Generate(DeviceResources* deviceRes) {
+	// BACKWARD
 	PushFace(Vector3::Zero, Vector3::Up, Vector3::Right, {3, 0});
+	// RIGHT
 	PushFace(Vector3::Right, Vector3::Up, Vector3::Forward, {3, 0});
+	// FORWARD
 	PushFace(Vector3::Right + Vector3::Forward, Vector3::Up, Vector3::Left, {3, 0});
+	// LEFT
 	PushFace(Vector3::Forward, Vector3::Up, Vector3::Backward, {3, 0});
+	// UP
 	PushFace(Vector3::Up, Vector3::Forward, Vector3::Right, {2, 0});
+	// DOWN
 	PushFace(Vector3::Zero, Vector3::Right, Vector3::Forward, {0, 0});
 
 	vertexBuffer.Create(deviceRes);

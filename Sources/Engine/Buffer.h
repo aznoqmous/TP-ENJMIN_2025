@@ -30,14 +30,16 @@ class IndexBuffer {
 private:
 	ComPtr<ID3D11Buffer> buffer;
 	std::vector<uint32_t> data;
+
 public:
+
 	void PushTriangle(const uint32_t& a, const uint32_t& b, const uint32_t& c) {
 		data.push_back(a);
 		data.push_back(b);
 		data.push_back(c);
 	}
 	uint32_t Size() {
-		return data.size();
+		return (uint32_t)data.size();
 	}
 	void Create(DeviceResources* deviceRes) {
 		CD3D11_BUFFER_DESC desc(sizeof(uint32_t) * data.size(), D3D11_BIND_INDEX_BUFFER);
@@ -54,8 +56,8 @@ template <typename TData>
 class ConstantBuffer {
 private:
 	ComPtr<ID3D11Buffer> buffer;
-	TData data;
 public:
+	TData data;
 	void Create(DeviceResources* deviceRes) {
 		CD3D11_BUFFER_DESC desc(sizeof(TData), D3D11_BIND_CONSTANT_BUFFER);
 		D3D11_SUBRESOURCE_DATA initialData;

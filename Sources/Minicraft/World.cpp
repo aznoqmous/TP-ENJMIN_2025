@@ -13,9 +13,41 @@ void World::Generate(DeviceResources* deviceRes) {
 		}
 	}
 
-	
 	for (auto &it : chunks) {
 		it.second.GenerateMesh(deviceRes, this);
+	}
+}
+
+void World::UpdateChunks(Vector3 referencePosition, DeviceResources* deviceRes)
+{
+	Vector3 refChunkPosition = WorldToChunkPosition(referencePosition);
+	for (auto it = chunks.begin(); it != chunks.end();) {
+		if (Vector3::Distance(it->second.position, refChunkPosition) > maxChunkDistance) {
+			it = chunks.erase(it);
+			continue;
+		}
+		it++;
+	}
+
+	bool updated = false;
+	for (float x = -chunkGenerationSize.x / 2.0; x < chunkGenerationSize.x / 2.0; x++) {
+		for (float y = -chunkGenerationSize.y / 2.0; y < chunkGenerationSize.y / 2.0; y++) {
+			for (float z = -chunkGenerationSize.z / 2.0; z < chunkGenerationSize.z / 2.0; z++) {
+				Vector3 position = Vector3(floor(x), floor(y), floor(z)) + refChunkPosition;
+				if (position.y > 3) continue;
+				if (Vector3::Distance(refChunkPosition, position) > minChunkDistance) continue;
+				if (chunks.find(position) != chunks.end()) continue;
+				chunks[position] = Chunk(position);
+				chunks[position].Generate(deviceRes);
+				updated = true;
+			}
+		}
+	}
+
+	if (updated) {
+		for (auto& it : chunks) {
+			it.second.GenerateMesh(deviceRes, this);
+		}
 	}
 }
 
@@ -29,11 +61,23 @@ void World::Draw(DeviceResources* deviceRes) {
 }
 
 int World::GetCubeAtPosition(Vector3 worldPosition) {
-	Vector3 chunkPosition = Vector3(
+	Vector3 chunkPosition = WorldToChunkPosition(worldPosition);
+	if (chunks.find(chunkPosition) == chunks.end()) return 0;
+	return chunks[chunkPosition].GetCubeAtPosition(worldPosition - chunks[chunkPosition].worldPosition);
+}
+
+Vector3 World::WorldToChunkPosition(Vector3 worldPosition) {
+	return Vector3(
 		floor(worldPosition.x / CHUNK_SIZE.x),
 		floor(worldPosition.y / CHUNK_SIZE.y),
 		floor(worldPosition.z / CHUNK_SIZE.z)
 	);
-	if (chunks.find(chunkPosition) == chunks.end()) return 0;
-	return chunks[chunkPosition].GetCubeAtPosition(worldPosition - chunks[chunkPosition].worldPosition);
+}
+
+Vector3 World::ChunkToWorldPosition(Vector3 chunkPosition) {
+	return Vector3(
+		chunkPosition.x * CHUNK_SIZE.x,
+		chunkPosition.y * CHUNK_SIZE.y,
+		chunkPosition.z * CHUNK_SIZE.z
+	);
 }

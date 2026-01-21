@@ -149,6 +149,7 @@ void Game::Render() {
 	//modelBuffer.UpdateBuffer(m_deviceResources.get());
 	//modelBuffer.ApplyToVS(m_deviceResources.get(), 0);
 
+	world.UpdateChunks(camera.position, m_deviceResources.get());
 	world.Draw(m_deviceResources.get());
 	//chunk.Draw(m_deviceResources.get());
 

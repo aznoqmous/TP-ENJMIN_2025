@@ -9,9 +9,11 @@
 
 #include "PerlinNoise.hpp"
 #include "Engine/Shader.h"
-#include "Minicraft/Cube.h"
-#include "Minicraft/Chunk.h"
 #include "Engine/Texture.h"
+#include "Engine/Camera.h"
+#include "Minicraft/Chunk.h"
+#include "Minicraft/World.h"
+#include "Minicraft/Player.h"
 
 extern void ExitGame() noexcept;
 
@@ -26,25 +28,16 @@ Texture terrain(L"terrain");
 
 CommonStates* commonStates;
 
-struct ModelData {
-	Matrix modelMatrix;
-};
-struct CameraData {
-	Matrix viewMatrix;
-	Matrix projectionMatrix;
-};
+Camera camera;
 
-ConstantBuffer<ModelData> modelBuffer;
-ConstantBuffer<CameraData> cameraBuffer;
-
-Cube cube(Vector3::Forward * 100.0);
-Chunk chunk;
+World world;
+Player player(Vector3(16, 16, 16));
 
 // Game
 Game::Game() noexcept(false) {
 	m_deviceResources = std::make_unique<DeviceResources>(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, DXGI_FORMAT_D32_FLOAT, 2);
 	m_deviceResources->RegisterDeviceNotify(this);
-
+	
 }
 
 Game::~Game() {
@@ -58,6 +51,7 @@ void Game::Initialize(HWND window, int width, int height) {
 	m_keyboard = std::make_unique<Keyboard>();
 	m_mouse = std::make_unique<Mouse>();
 	m_mouse->SetWindow(window);
+	m_mouse->SetMode(Mouse::Mode::MODE_RELATIVE);
 
 	// Initialize the Direct3D resources
 	m_deviceResources->SetWindow(window, width, height);
@@ -72,19 +66,12 @@ void Game::Initialize(HWND window, int width, int height) {
 	GenerateInputLayout<VertexLayout_PositionNormalUV>(m_deviceResources.get(), &basicShader);
 
 	// TP: allouer vertexBuffer ici
-	cube.Generate(m_deviceResources.get());
-	chunk.Generate(m_deviceResources.get());
+	//chunk.Generate(m_deviceResources.get());
+	world.Generate(m_deviceResources.get());
 
-	Vector3 position = Vector3::Forward;
-	modelBuffer.Create(m_deviceResources.get());
-
-	cameraBuffer.Create(m_deviceResources.get());
-	float fov = 1.0;
-	float aspectRatio = (float)width / (float)height;
-	float nearPlane = 0.1;
-	float farPlane = 1000.0;
-	cameraBuffer.data.viewMatrix = Matrix::CreateLookAt(Vector3::Backward + Vector3::Up * 16, Vector3::Forward * 100.0, Vector3::Up).Transpose();
-	cameraBuffer.data.projectionMatrix = Matrix::CreatePerspectiveFieldOfView(fov, aspectRatio, nearPlane, farPlane).Transpose();
+	camera.Create(m_deviceResources.get());
+	camera.SetPosition(Vector3::Backward * 5.f);
+	camera.aspectRatio = (float)width / (float)height;
 
 	terrain.Create(m_deviceResources.get());
 }
@@ -97,12 +84,31 @@ void Game::Tick() {
 	Render();
 }
 
+Vector2 mousePos;
 // Updates the world.
 void Game::Update(DX::StepTimer const& timer) {
 	auto const kb = m_keyboard->GetState();
 	auto const ms = m_mouse->GetState();
 
 	// add kb/mouse interact here
+
+	Vector3 movement;
+	if (kb.IsKeyDown(Keyboard::Keys::Q)) movement += Vector3::Left;
+	if (kb.IsKeyDown(Keyboard::Keys::D)) movement += Vector3::Right;
+	if (kb.IsKeyDown(Keyboard::Keys::Z)) movement += Vector3::Forward;
+	if (kb.IsKeyDown(Keyboard::Keys::S)) movement += Vector3::Backward;
+	if (kb.IsKeyDown(Keyboard::Keys::Space)) movement += Vector3::Up;
+	if (kb.IsKeyDown(Keyboard::Keys::LeftShift)) movement += Vector3::Down;
+
+	camera.SetPosition(camera.position + Vector3::Transform(movement, camera.rotation) * timer.GetElapsedSeconds() * 10.0);
+
+	Vector2 mouseDelta = mousePos - Vector2(ms.x, ms.y);
+	mousePos = Vector2(ms.x, ms.y);
+	//camera.rotation *= Quaternion::CreateFromYawPitchRoll(mouseDelta.x / 100.0, mouseDelta.y / 100.0, 0);
+	camera.rotation *= Quaternion::CreateFromAxisAngle(camera.right, -ms.y / 1000.0);
+	camera.SetRotation(camera.rotation);
+	camera.rotation *= Quaternion::CreateFromAxisAngle(Vector3::Up, -ms.x / 1000.0);
+	camera.SetRotation(camera.rotation);
 
 	if (kb.Escape)
 		ExitGame();
@@ -137,21 +143,14 @@ void Game::Render() {
 
 	terrain.Apply(m_deviceResources.get());
 
-	//modelBuffer.data.modelMatrix = Matrix::CreateScale(abs(sin(m_timer.GetTotalSeconds()) * 0.5) + 0.5).Transpose();
-	modelBuffer.data.modelMatrix = Matrix::CreateTranslation(Vector3::Forward * 40.0).Transpose();
+	camera.ApplyCamera(m_deviceResources.get());
 
-	modelBuffer.data.modelMatrix *= Matrix::CreateRotationY(m_timer.GetTotalSeconds() * 1.0).Transpose();
+	//modelBuffer.data.modelMatrix = Matrix::CreateTranslation(Vector3::Forward * 100.f);
+	//modelBuffer.UpdateBuffer(m_deviceResources.get());
+	//modelBuffer.ApplyToVS(m_deviceResources.get(), 0);
 
-	modelBuffer.UpdateBuffer(m_deviceResources.get());
-	
-	cameraBuffer.UpdateBuffer(m_deviceResources.get());
-	
-
-	modelBuffer.ApplyToVS(m_deviceResources.get(), 0);
-	cameraBuffer.ApplyToVS(m_deviceResources.get(), 1);
-
-	//cube.Draw(m_deviceResources.get());
-	chunk.Draw(m_deviceResources.get());
+	world.Draw(m_deviceResources.get());
+	//chunk.Draw(m_deviceResources.get());
 
 	// envoie nos commandes au GPU pour etre afficher � l'�cran
 	m_deviceResources->Present();
@@ -182,11 +181,7 @@ void Game::OnWindowSizeChanged(int width, int height) {
 	if (!m_deviceResources->WindowSizeChanged(width, height))
 		return;
 
-	float fov = 1.0;
-	float aspectRatio = (float)width / (float) height;
-	float nearPlane = 0.1;
-	float farPlane = 100.0;
-	cameraBuffer.data.projectionMatrix = Matrix::CreatePerspectiveFieldOfView(fov, aspectRatio, nearPlane, farPlane).Transpose();
+	camera.aspectRatio = (float)width / (float)height;
 	// The windows size has changed:
 	// We can realloc here any resources that depends on the target resolution (post processing etc)
 }

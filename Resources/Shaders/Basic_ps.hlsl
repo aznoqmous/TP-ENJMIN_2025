@@ -12,7 +12,7 @@ float4 main(Input input) : SV_TARGET {
     //return float4(input.uv, 0, 1);
     
     float3 lightDirection = float3(1, -1, -1);
-    float lightIntensity = max(dot(normalize(input.normal), normalize(-lightDirection)), 0);
+    float lightIntensity = max(dot(normalize(input.normal), normalize(-lightDirection)), 0.1);
     
     float4 color = tex.Sample(sampleState, input.uv);
     

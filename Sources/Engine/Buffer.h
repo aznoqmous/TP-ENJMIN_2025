@@ -22,6 +22,7 @@ public:
 		CD3D11_BUFFER_DESC desc(sizeof(TVertex) * data.size(), D3D11_BIND_VERTEX_BUFFER);
 		D3D11_SUBRESOURCE_DATA initialData;
 		initialData.pSysMem = data.data();
+		if (data.size() <= 0) return;
 		deviceRes->GetD3DDevice()->CreateBuffer(&desc, &initialData, buffer.ReleaseAndGetAddressOf());
 	}
 
@@ -29,6 +30,7 @@ public:
 		ID3D11Buffer* vbs[] = { buffer.Get() };
 		UINT strides[] = { sizeof(TVertex) };
 		UINT offsets[] = { 0 };
+		if (data.size() <= 0) return;
 		deviceRes->GetD3DDeviceContext()->IASetVertexBuffers(slot, 1, vbs, strides, offsets);
 	}
 };
@@ -57,10 +59,12 @@ public:
 		CD3D11_BUFFER_DESC desc(sizeof(uint32_t) * data.size(), D3D11_BIND_INDEX_BUFFER);
 		D3D11_SUBRESOURCE_DATA initialData;
 		initialData.pSysMem = data.data();
+		if (data.size() <= 0) return;
 		deviceRes->GetD3DDevice()->CreateBuffer(&desc, &initialData, buffer.ReleaseAndGetAddressOf());
 	}
 
 	void Apply(DeviceResources* deviceRes) {
+		if (data.size() <= 0) return;
 		deviceRes->GetD3DDeviceContext()->IASetIndexBuffer(buffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 	}
 };

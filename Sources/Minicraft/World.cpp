@@ -86,9 +86,9 @@ void World::Draw(DeviceResources* deviceRes) {
 	}
 }
 
-int World::GetCubeAtPosition(Vector3 worldPosition) {
+BlockId World::GetCubeAtPosition(Vector3 worldPosition) {
 	Vector3 chunkPosition = WorldToChunkPosition(worldPosition);
-	if (chunks.find(chunkPosition) == chunks.end()) return 0;
+	if (chunks.find(chunkPosition) == chunks.end()) return EMPTY;
 	return chunks[chunkPosition].GetCubeAtPosition(worldPosition - chunks[chunkPosition].worldPosition);
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine/VertexLayout.h"
 #include "Engine/Buffer.h"
+#include "Block.h"
 
 const Vector3 CHUNK_SIZE = { 16, 32, 16 };
 const int CHUNK_CUBES_COUNT = 16 * 32 * 16;
@@ -14,7 +15,7 @@ public:
 
 	bool isGenerating = false;
 
-	int cubes[CHUNK_CUBES_COUNT];
+	BlockId cubes[CHUNK_CUBES_COUNT];
 	VertexBuffer<VertexLayout_PositionNormalUV> vertexBuffer;
 	IndexBuffer indexBuffer;
 
@@ -28,11 +29,11 @@ public:
 	void Generate(DeviceResources* deviceRes);
 	void GenerateMesh(DeviceResources* deviceRes, World* world);
 	void Draw(DeviceResources* deviceRes);
-	void PushFace(Vector3 pos, Vector3 up, Vector3 right, Vector2 tilePos);
-	void PushBlock(Vector3 pos, int blockId);
+	void PushFace(Vector3 pos, Vector3 up, Vector3 right, int texId);
+	void PushBlock(Vector3 pos, World* world, BlockId blockId);
 
-	int GetCubeAtPosition(Vector3 pos);
-	void SetCubeAtPosition(Vector3 pos, int cube);
+	BlockId GetCubeAtPosition(Vector3 pos);
+	void SetCubeAtPosition(Vector3 pos, BlockId cube);
 	Vector3 GetPositionFromIndex(int index);
 	int GetIndexFromPosition(Vector3 pos);
 };

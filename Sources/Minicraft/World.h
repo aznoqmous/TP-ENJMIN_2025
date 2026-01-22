@@ -2,6 +2,7 @@
 
 #include "Chunk.h"
 #include <semaphore>
+#include "Block.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -25,7 +26,7 @@ public:
 	void GenerateWorker(DeviceResources* deviceRes, Chunk* chunk);
 	void Generate(DeviceResources* deviceRes);
 	void Draw(DeviceResources* deviceRes);
-	int GetCubeAtPosition(Vector3 worldPosition);
+	BlockId GetCubeAtPosition(Vector3 worldPosition);
 	void UpdateChunks(Vector3 referencePosition, DeviceResources* deviceRes);
 	Vector3 WorldToChunkPosition(Vector3 worldPosition);
 	Vector3 ChunkToWorldPosition(Vector3 chunkPosition);

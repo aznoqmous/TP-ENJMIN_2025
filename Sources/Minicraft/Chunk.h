@@ -2,8 +2,8 @@
 #include "Engine/VertexLayout.h"
 #include "Engine/Buffer.h"
 
-const Vector3 CHUNK_SIZE = { 8, 8, 8 };
-const int CHUNK_CUBES_COUNT = 8 * 8 * 8;
+const Vector3 CHUNK_SIZE = { 16, 16, 16 };
+const int CHUNK_CUBES_COUNT = 16 * 16 * 16;
 using namespace DirectX::SimpleMath;
 
 

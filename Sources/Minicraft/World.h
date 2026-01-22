@@ -12,9 +12,9 @@ public:
 
 	ConstantBuffer<ChunkData> modelBuffer;
 	std::map<Vector3, Chunk> chunks;
-	Vector3 chunkGenerationSize = {3, 3, 3};
-	float maxChunkDistance = 4; // delete chunks over distance
-	float minChunkDistance = 3; // create chunks under distance
+	Vector3 chunkGenerationSize = {2, 2, 2};
+	float chunkUnloadDistance = 5; // delete chunks over distance
+	float chunkLoadDistance = 3; // create chunks under distance
 
 	void Generate(DeviceResources* deviceRes);
 	void Draw(DeviceResources* deviceRes);
@@ -22,4 +22,5 @@ public:
 	void UpdateChunks(Vector3 referencePosition, DeviceResources* deviceRes);
 	Vector3 WorldToChunkPosition(Vector3 worldPosition);
 	Vector3 ChunkToWorldPosition(Vector3 chunkPosition);
+	std::list<Chunk*> World::GetNeighbourChunks(Vector3 chunkPosition);
 };

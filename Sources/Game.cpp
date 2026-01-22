@@ -70,7 +70,7 @@ void Game::Initialize(HWND window, int width, int height) {
 	world.Generate(m_deviceResources.get());
 
 	camera.Create(m_deviceResources.get());
-	camera.SetPosition(Vector3::Backward * 5.f);
+	camera.SetPosition(Vector3::Backward * 5.f + Vector3::Up * CHUNK_SIZE.y);
 	camera.aspectRatio = (float)width / (float)height;
 
 	terrain.Create(m_deviceResources.get());

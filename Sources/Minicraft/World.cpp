@@ -22,32 +22,34 @@ void World::UpdateChunks(Vector3 referencePosition, DeviceResources* deviceRes)
 {
 	Vector3 refChunkPosition = WorldToChunkPosition(referencePosition);
 	for (auto it = chunks.begin(); it != chunks.end();) {
-		if (Vector3::Distance(it->second.position, refChunkPosition) > maxChunkDistance) {
+		if (Vector3::Distance(it->second.position, refChunkPosition) > chunkUnloadDistance) {
 			it = chunks.erase(it);
 			continue;
 		}
 		it++;
 	}
 
-	bool updated = false;
+	std::map<Vector3, Chunk*> needUpdateChunks;
 	for (float x = -chunkGenerationSize.x / 2.0; x < chunkGenerationSize.x / 2.0; x++) {
 		for (float y = -chunkGenerationSize.y / 2.0; y < chunkGenerationSize.y / 2.0; y++) {
 			for (float z = -chunkGenerationSize.z / 2.0; z < chunkGenerationSize.z / 2.0; z++) {
 				Vector3 position = Vector3(floor(x), floor(y), floor(z)) + refChunkPosition;
 				if (position.y > 3) continue;
-				if (Vector3::Distance(refChunkPosition, position) > minChunkDistance) continue;
+				if (Vector3::Distance(refChunkPosition, position + Vector3::One / 2.0) > chunkLoadDistance) continue;
 				if (chunks.find(position) != chunks.end()) continue;
 				chunks[position] = Chunk(position);
 				chunks[position].Generate(deviceRes);
-				updated = true;
+				needUpdateChunks[position] = &chunks[position];
+				for (Chunk* nchunk : GetNeighbourChunks(position)) {
+					if (needUpdateChunks.find(position) != needUpdateChunks.end()) continue;
+					needUpdateChunks[position] = nchunk;
+				}
 			}
 		}
 	}
-
-	if (updated) {
-		for (auto& it : chunks) {
-			it.second.GenerateMesh(deviceRes, this);
-		}
+	
+	for (auto& it : needUpdateChunks) {
+		it.second->GenerateMesh(deviceRes, this);
 	}
 }
 
@@ -80,4 +82,21 @@ Vector3 World::ChunkToWorldPosition(Vector3 chunkPosition) {
 		chunkPosition.y * CHUNK_SIZE.y,
 		chunkPosition.z * CHUNK_SIZE.z
 	);
+}
+
+std::list<Chunk*> World::GetNeighbourChunks(Vector3 chunkPosition) {
+	std::list<Chunk*> nchunks;
+	Vector3 positions[6] = {
+		chunkPosition + Vector3::Up,
+		chunkPosition + Vector3::Down,
+		chunkPosition + Vector3::Left,
+		chunkPosition + Vector3::Right,
+		chunkPosition + Vector3::Forward,
+		chunkPosition + Vector3::Backward,
+	};
+	for (Vector3 pos : positions) {
+		if (chunks.find(pos) == chunks.end()) continue;
+		nchunks.push_back(&chunks[pos]);
+	}
+	return nchunks;
 }

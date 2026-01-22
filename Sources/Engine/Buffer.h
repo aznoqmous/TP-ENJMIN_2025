@@ -6,9 +6,9 @@ template <typename TVertex>
 class VertexBuffer {
 private:
 	ComPtr<ID3D11Buffer> buffer;
-	std::vector<TVertex> data;
 
 public:
+	std::vector<TVertex> data;
 	void Clear() {
 		data.clear();
 	}

@@ -2,17 +2,17 @@
 #include "Engine/VertexLayout.h"
 #include "Engine/Buffer.h"
 
-const Vector3 CHUNK_SIZE = { 16, 16, 16 };
-const int CHUNK_CUBES_COUNT = 16 * 16 * 16;
+const Vector3 CHUNK_SIZE = { 16, 32, 16 };
+const int CHUNK_CUBES_COUNT = 16 * 32 * 16;
 using namespace DirectX::SimpleMath;
-
 
 class World;
 class Chunk {
 public:
-	//std::map<Vector3, int> cubes;
 	Vector3 position;
 	Vector3 worldPosition;
+
+	bool isGenerating = false;
 
 	int cubes[CHUNK_CUBES_COUNT];
 	VertexBuffer<VertexLayout_PositionNormalUV> vertexBuffer;
@@ -29,6 +29,7 @@ public:
 	void GenerateMesh(DeviceResources* deviceRes, World* world);
 	void Draw(DeviceResources* deviceRes);
 	void PushFace(Vector3 pos, Vector3 up, Vector3 right, Vector2 tilePos);
+	void PushBlock(Vector3 pos, int blockId);
 
 	int GetCubeAtPosition(Vector3 pos);
 	void SetCubeAtPosition(Vector3 pos, int cube);

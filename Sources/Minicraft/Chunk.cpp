@@ -2,19 +2,30 @@
 #include "Chunk.h"
 #include "Perlin.h"
 #include "World.h"
+#include <thread>
 
 void Chunk::Generate(DeviceResources* deviceRes)
 {
 	siv::PerlinNoise noise;
-	
+	float minElevation = 0.0;
+	float maxElevation = CHUNK_SIZE.y;
+
 	for (float x = 0; x < CHUNK_SIZE.x; x++) {
 		for (float y = 0; y < CHUNK_SIZE.y; y++) {
 			for (float z = 0; z < CHUNK_SIZE.z; z++) {
 				Vector3 pos = worldPosition + Vector3(x, y, z);
-				double rate = noise.noise3D_01(pos.x / 10.0, pos.y / 10.0, pos.z / 10.0);
+				double rate = (noise.noise3D_01(pos.x / 10.0, pos.y / 10.0, pos.z / 10.0) + noise.noise3D_01(pos.x / 50.0, pos.y / 50.0, pos.z / 50.0)) / 2.0;
 				int cubeValue = 0;
-				if (rate < 0.5) {
+
+				float elevation = noise.normalizedOctave2D_01(pos.x / 50.0, pos.z / 50.0, 3);
+
+				if (pos.y < elevation * (maxElevation - minElevation) + minElevation){
 					cubeValue = 1;
+					if (pos.y <= minElevation + maxElevation / 2.0) {
+						if (rate < 0.5) {
+							cubeValue = 0;
+						}
+					}
 				}
 				SetCubeAtPosition(Vector3(x, y, z), cubeValue);
 			}
@@ -22,6 +33,7 @@ void Chunk::Generate(DeviceResources* deviceRes)
 	}
 
 }
+
 
 void Chunk::GenerateMesh(DeviceResources* deviceRes, World* world) {
 	vertexBuffer.Clear();
@@ -101,7 +113,13 @@ void Chunk::PushFace(Vector3 pos, Vector3 up, Vector3 right, Vector2 tilePos) {
 	indexBuffer.PushTriangle(i0, i3, i1);
 }
 
+void Chunk::PushBlock(Vector3 pos, int blockId) {
+
+}
+
+
 void Chunk::Draw(DeviceResources* deviceRes) {
+	if (indexBuffer.Size() == 0) return;
 	vertexBuffer.Apply(deviceRes);
 	indexBuffer.Apply(deviceRes);
 	deviceRes->GetD3DDeviceContext()->DrawIndexed(indexBuffer.Size(), 0, 0);

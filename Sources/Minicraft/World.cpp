@@ -1,5 +1,16 @@
 #include "pch.h"
 #include "World.h"
+#include <thread>
+#include <list>
+#include <algorithm>
+
+void World::GenerateWorker(DeviceResources* deviceRes, Chunk* chunk) {
+	chunkGenJob.acquire();
+	chunk->GenerateMesh(deviceRes, this);
+	chunk->isGenerating = false;
+	chunkGenJob.release();
+}
+
 
 void World::Generate(DeviceResources* deviceRes) {
 	modelBuffer.Create(deviceRes);
@@ -9,20 +20,18 @@ void World::Generate(DeviceResources* deviceRes) {
 				Vector3 position = Vector3(x, y, z);
 				chunks[position] = Chunk(position);
 				chunks[position].Generate(deviceRes);
+				staleChunks.push_back(&chunks[position]);
 			}
 		}
 	}
 
-	for (auto &it : chunks) {
-		it.second.GenerateMesh(deviceRes, this);
-	}
 }
 
 void World::UpdateChunks(Vector3 referencePosition, DeviceResources* deviceRes)
 {
 	Vector3 refChunkPosition = WorldToChunkPosition(referencePosition);
 	for (auto it = chunks.begin(); it != chunks.end();) {
-		if (Vector3::Distance(it->second.position, refChunkPosition) > chunkUnloadDistance) {
+		if (Vector3::Distance(it->second.position, refChunkPosition) > chunkUnloadDistance && !it->second.isGenerating) {
 			it = chunks.erase(it);
 			continue;
 		}
@@ -34,7 +43,7 @@ void World::UpdateChunks(Vector3 referencePosition, DeviceResources* deviceRes)
 		for (float y = -chunkGenerationSize.y / 2.0; y < chunkGenerationSize.y / 2.0; y++) {
 			for (float z = -chunkGenerationSize.z / 2.0; z < chunkGenerationSize.z / 2.0; z++) {
 				Vector3 position = Vector3(floor(x), floor(y), floor(z)) + refChunkPosition;
-				if (position.y > 3) continue;
+				//if (position.y > 3) continue;
 				if (Vector3::Distance(refChunkPosition, position + Vector3::One / 2.0) > chunkLoadDistance) continue;
 				if (chunks.find(position) != chunks.end()) continue;
 				chunks[position] = Chunk(position);
@@ -42,6 +51,7 @@ void World::UpdateChunks(Vector3 referencePosition, DeviceResources* deviceRes)
 				needUpdateChunks[position] = &chunks[position];
 				for (Chunk* nchunk : GetNeighbourChunks(position)) {
 					if (needUpdateChunks.find(position) != needUpdateChunks.end()) continue;
+					if (std::find(staleChunks.begin(), staleChunks.end(), &chunks[position]) != staleChunks.end()) continue;
 					needUpdateChunks[position] = nchunk;
 				}
 			}
@@ -49,9 +59,23 @@ void World::UpdateChunks(Vector3 referencePosition, DeviceResources* deviceRes)
 	}
 	
 	for (auto& it : needUpdateChunks) {
-		it.second->GenerateMesh(deviceRes, this);
+		staleChunks.push_back(it.second);
 	}
+
+	std::vector<Chunk*>::iterator it = staleChunks.begin();
+	while (it != staleChunks.end()) {
+		if ((*it)->isGenerating) {
+			++it;
+			continue;
+		}
+		(*it)->isGenerating = true;
+		std::thread task(&World::GenerateWorker, this, deviceRes, *it);
+		it = staleChunks.erase(it);
+		task.detach();
+	}
+
 }
+
 
 void World::Draw(DeviceResources* deviceRes) {
 	for (auto &it: chunks) {

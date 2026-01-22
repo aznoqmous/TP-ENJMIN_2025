@@ -9,7 +9,7 @@ project "Minicraft"
 	kind "WindowedApp"
 	architecture "x86_64"
 	language "C++"
-	cppdialect "C++17"
+	cppdialect "C++20"
 
 	targetname "minicraft"
 	targetdir "Bin/$(Platform)/$(Configuration)"

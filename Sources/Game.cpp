@@ -100,7 +100,7 @@ void Game::Update(DX::StepTimer const& timer) {
 	if (kb.IsKeyDown(Keyboard::Keys::Space)) movement += Vector3::Up;
 	if (kb.IsKeyDown(Keyboard::Keys::LeftShift)) movement += Vector3::Down;
 
-	camera.SetPosition(camera.position + Vector3::Transform(movement, camera.rotation) * timer.GetElapsedSeconds() * 10.0);
+	camera.SetPosition(camera.position + Vector3::Transform(movement, camera.rotation) * timer.GetElapsedSeconds() * 30.0);
 
 	Vector2 mouseDelta = mousePos - Vector2(ms.x, ms.y);
 	mousePos = Vector2(ms.x, ms.y);

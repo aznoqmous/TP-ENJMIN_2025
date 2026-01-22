@@ -24,8 +24,8 @@ void GenerateInputLayout(DeviceResources* deviceRes, Shader* basicShader) {
 	auto it = g_inputLayouts.find(typeid(T).name());
 	if (it != g_inputLayouts.end()) return;
 	deviceRes->GetD3DDevice()->CreateInputLayout(
-		typename T::InputElementDescs.data(),
-		typename T::InputElementDescs.size(),
+		T::InputElementDescs.data(),
+		T::InputElementDescs.size(),
 		basicShader->vsBytecode.data(),
 		basicShader->vsBytecode.size(),
 		g_inputLayouts[typeid(T).name()].ReleaseAndGetAddressOf());

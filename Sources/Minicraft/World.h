@@ -6,8 +6,9 @@
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
-struct ChunkData {
+struct alignas(16) ChunkData {
 	Matrix modelMatrix;
+	Vector3 selectedCube;
 };
 
 const int CONCURRENT_CHUNK_GEN = 3;
@@ -21,7 +22,7 @@ public:
 	std::vector<Chunk*> staleChunks;
 	Vector3 chunkGenerationSize = {10, 1, 10};
 	float chunkUnloadDistance = 20; // delete chunks over distance
-	float chunkLoadDistance = 15; // create chunks under distance
+	float chunkLoadDistance = 8; // create chunks under distance
 
 	void GenerateWorker(DeviceResources* deviceRes, Chunk* chunk);
 	void Generate(DeviceResources* deviceRes);
@@ -31,5 +32,6 @@ public:
 	Vector3 WorldToChunkPosition(Vector3 worldPosition);
 	Vector3 ChunkToWorldPosition(Vector3 chunkPosition);
 	std::list<Chunk*> GetNeighbourChunks(Vector3 chunkPosition);
-	
+	void ShowImGui(DeviceResources* res);
+
 };

@@ -28,10 +28,20 @@ project "Minicraft"
 		"main.cpp"
 	}
 
+	-- ImGui files
+	files {
+		"Deps/imgui/*.h",
+		"Deps/imgui/*.cpp",
+		"Deps/imgui/backends/imgui_impl_win32.*",
+		"Deps/imgui/backends/imgui_impl_dx11.*",
+		"Deps/imgui/misc/cpp/imgui_stdlib.*",
+	}
+
 	includedirs {
 		"Sources",
 		"Deps/DirectXTK/Inc",
-		"Deps/PerlinNoise"
+		"Deps/PerlinNoise",
+		"Deps/imgui"
 	}
 
 	links {
@@ -40,6 +50,8 @@ project "Minicraft"
 		"DirectXTK.lib"
 	}
 
+	filter "files:**imgui**.cpp"
+    	flags {"NoPCH"}
 	filter "files:**.hlsl or **.hlsli" 
 	   shadermodel "5.0"
 	   shaderobjectfileoutput "%%(RelativeDir)Compiled/%%(Filename).cso"

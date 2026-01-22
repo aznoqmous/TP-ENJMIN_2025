@@ -14,6 +14,9 @@ void World::GenerateWorker(DeviceResources* deviceRes, Chunk* chunk) {
 
 void World::Generate(DeviceResources* deviceRes) {
 	modelBuffer.Create(deviceRes);
+	chunks.clear();
+	staleChunks.clear();
+	/*
 	for (float x = 0; x < chunkGenerationSize.x; x++) {
 		for (float y = 0; y < chunkGenerationSize.y; y++) {
 			for (float z = 0; z < chunkGenerationSize.z; z++) {
@@ -24,7 +27,7 @@ void World::Generate(DeviceResources* deviceRes) {
 			}
 		}
 	}
-
+	*/
 }
 
 void World::UpdateChunks(Vector3 referencePosition, DeviceResources* deviceRes)
@@ -43,7 +46,7 @@ void World::UpdateChunks(Vector3 referencePosition, DeviceResources* deviceRes)
 		for (float y = -chunkGenerationSize.y / 2.0; y < chunkGenerationSize.y / 2.0; y++) {
 			for (float z = -chunkGenerationSize.z / 2.0; z < chunkGenerationSize.z / 2.0; z++) {
 				Vector3 position = Vector3(floor(x), floor(y), floor(z)) + refChunkPosition;
-				//if (position.y > 3) continue;
+				if (position.y < 0) continue;
 				if (Vector3::Distance(refChunkPosition, position + Vector3::One / 2.0) > chunkLoadDistance) continue;
 				if (chunks.find(position) != chunks.end()) continue;
 				chunks[position] = Chunk(position);
@@ -123,4 +126,22 @@ std::list<Chunk*> World::GetNeighbourChunks(Vector3 chunkPosition) {
 		nchunks.push_back(&chunks[pos]);
 	}
 	return nchunks;
+}
+
+void World::ShowImGui(DeviceResources* res) {
+	ImGui::Begin("World gen");
+
+	//ImGui::DragFloat("perlinScaleStone", &perlinScaleStone, 0.01f);
+	//ImGui::DragInt("perlinOctaveStone", &perlinOctaveStone, 0.1f);
+	//ImGui::DragFloat("perlinHeightStone", &perlinHeightStone, 0.1f);
+	//ImGui::DragFloat("perlinScaleDirt", &perlinScaleDirt, 0.01f);
+	//ImGui::DragInt("perlinOctaveDirt", &perlinOctaveDirt, 0.1f);
+	//ImGui::DragFloat("perlinHeightDirt", &perlinHeightDirt, 0.1f);
+
+	
+	if (ImGui::Button("Generate!"))
+		Generate(res);
+	
+
+	ImGui::End();
 }

@@ -78,6 +78,10 @@
 
 #include "Engine/DeviceResources.h"
 
+#include "imgui.h"
+#include "backends/imgui_impl_win32.h"
+#include "backends/imgui_impl_dx11.h"
+
 namespace DX
 {
 	// Helper class for COM exceptions

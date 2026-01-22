@@ -41,6 +41,10 @@ Game::Game() noexcept(false) {
 }
 
 Game::~Game() {
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+
 	delete commonStates;
 	g_inputLayouts.clear();
 }
@@ -74,17 +78,37 @@ void Game::Initialize(HWND window, int width, int height) {
 	camera.aspectRatio = (float)width / (float)height;
 
 	terrain.Create(m_deviceResources.get());
+
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // IF using Docking Branch
+
+	ImGui_ImplWin32_Init(window);
+	ImGui_ImplDX11_Init(m_deviceResources->GetD3DDevice(), m_deviceResources->GetD3DDeviceContext());
 }
 
 void Game::Tick() {
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
 	// DX::StepTimer will compute the elapsed time and call Update() for us
 	// We pass Update as a callback to Tick() because StepTimer can be set to a "fixed time" step mode, allowing us to call Update multiple time in a row if the framerate is too low (useful for physics stuffs)
 	m_timer.Tick([&]() { Update(m_timer); });
 
 	Render();
 }
-
+bool imGuiMode = false;
 Vector2 mousePos;
+Vector3 velocity;
+bool isJumpPressed = false;
+bool isGrounded = false;
+
 // Updates the world.
 void Game::Update(DX::StepTimer const& timer) {
 	auto const kb = m_keyboard->GetState();
@@ -92,23 +116,74 @@ void Game::Update(DX::StepTimer const& timer) {
 
 	// add kb/mouse interact here
 
-	Vector3 movement;
-	if (kb.IsKeyDown(Keyboard::Keys::Q)) movement += Vector3::Left;
-	if (kb.IsKeyDown(Keyboard::Keys::D)) movement += Vector3::Right;
-	if (kb.IsKeyDown(Keyboard::Keys::Z)) movement += Vector3::Forward;
-	if (kb.IsKeyDown(Keyboard::Keys::S)) movement += Vector3::Backward;
-	if (kb.IsKeyDown(Keyboard::Keys::Space)) movement += Vector3::Up;
-	if (kb.IsKeyDown(Keyboard::Keys::LeftShift)) movement += Vector3::Down;
+	if (kb.P) imGuiMode = true;
+	if (kb.M) imGuiMode = false;
 
-	camera.SetPosition(camera.position + Vector3::Transform(movement, camera.rotation) * timer.GetElapsedSeconds() * 30.0);
+	if (imGuiMode) {
+		m_mouse->SetMode(Mouse::MODE_ABSOLUTE);
+		world.ShowImGui(m_deviceResources.get());
+	}
+	else {
+		m_mouse->SetMode(Mouse::MODE_RELATIVE);
 
-	Vector2 mouseDelta = mousePos - Vector2(ms.x, ms.y);
-	mousePos = Vector2(ms.x, ms.y);
-	//camera.rotation *= Quaternion::CreateFromYawPitchRoll(mouseDelta.x / 100.0, mouseDelta.y / 100.0, 0);
-	camera.rotation *= Quaternion::CreateFromAxisAngle(camera.right, -ms.y / 1000.0);
-	camera.SetRotation(camera.rotation);
-	camera.rotation *= Quaternion::CreateFromAxisAngle(Vector3::Up, -ms.x / 1000.0);
-	camera.SetRotation(camera.rotation);
+		Vector3 movement;
+
+		Vector3 cameraPosition = Vector3(round(camera.position.x), round(camera.position.y), round(camera.position.z));
+		world.modelBuffer.data.selectedCube = cameraPosition + Vector3::Down; 
+		BlockId blockId = world.GetCubeAtPosition(cameraPosition + Vector3::Down * 2.0);
+		if (blockId == EMPTY) {
+			velocity.y -= timer.GetElapsedSeconds() * 9.8 / 4.0;
+			isGrounded = false;
+		}
+		else {
+			if (velocity.y < 0) {
+				velocity.y = 0;
+			}
+			isGrounded = true;
+		}
+
+
+		if (kb.IsKeyDown(Keyboard::Keys::Q)) movement += Vector3::Left;
+		if (kb.IsKeyDown(Keyboard::Keys::D)) movement += Vector3::Right;
+		if (kb.IsKeyDown(Keyboard::Keys::Z)) movement += Vector3::Forward;
+		if (kb.IsKeyDown(Keyboard::Keys::S)) movement += Vector3::Backward;
+		if (kb.IsKeyDown(Keyboard::Keys::Space) && !isJumpPressed && isGrounded && world.GetCubeAtPosition(cameraPosition - Vector3::Up) == EMPTY)
+		{
+			velocity.y = 1.0;
+			isJumpPressed = true;
+		}
+		if (!kb.IsKeyDown(Keyboard::Keys::Space)) {
+			isJumpPressed = false;
+		}
+		if (kb.IsKeyDown(Keyboard::Keys::LeftAlt)) {
+			velocity.y = 1.0;
+		}
+		//if (kb.IsKeyDown(Keyboard::Keys::LeftShift)) movement += Vector3::Down;
+		movement = Vector3::Transform(Vector3(movement.x, 0, movement.z), camera.rotation);
+		movement.y = 0;
+
+		Vector3 movementPosition = Vector3(round(camera.position.x + movement.x), round(camera.position.y + movement.y), round(camera.position.z + movement.z));
+		if (world.GetCubeAtPosition(movementPosition + Vector3::Down) != EMPTY) {
+			movement = Vector3::Zero;
+		}
+		camera.SetPosition(
+			camera.position 
+			+ movement * timer.GetElapsedSeconds() * 10.0
+			+ Vector3(0, velocity.y, 0) * timer.GetElapsedSeconds() * 10.0
+		);
+		
+		//camera.SetPosition(camera.position + movement * timer.GetElapsedSeconds() * 30.0);
+
+		Vector2 mouseDelta = mousePos - Vector2(ms.x, ms.y);
+		mousePos = Vector2(ms.x, ms.y);
+		//camera.rotation *= Quaternion::CreateFromYawPitchRoll(mouseDelta.x / 100.0, mouseDelta.y / 100.0, 0);
+		camera.rotation *= Quaternion::CreateFromAxisAngle(camera.right, -ms.y / 1000.0);
+		camera.SetRotation(camera.rotation);
+		camera.rotation *= Quaternion::CreateFromAxisAngle(Vector3::Up, -ms.x / 1000.0);
+		camera.SetRotation(camera.rotation);
+
+		
+	}
 
 	if (kb.Escape)
 		ExitGame();
@@ -152,6 +227,11 @@ void Game::Render() {
 	world.UpdateChunks(camera.position, m_deviceResources.get());
 	world.Draw(m_deviceResources.get());
 	//chunk.Draw(m_deviceResources.get());
+
+	ImGui::Render();
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+	ImGui::UpdatePlatformWindows();
+	ImGui::RenderPlatformWindowsDefault();
 
 	// envoie nos commandes au GPU pour etre afficher � l'�cran
 	m_deviceResources->Present();

@@ -89,7 +89,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
-		} else {
+		}
+		else {
 			g_game->Tick();
 		}
 	}
@@ -114,7 +115,8 @@ void ToogleFullscren(HWND hWnd, Game* game) {
 		ShowWindow(hWnd, SW_SHOWNORMAL);
 		// put window in the center of the screen (works only on 1080p monitors, to change)
 		SetWindowPos(hWnd, HWND_TOP, 1920 / 2 - width / 2, 1080 / 2 - height / 2, width, height, SWP_NOZORDER | SWP_FRAMECHANGED);
-	} else {
+	}
+	else {
 		SetWindowLongPtr(hWnd, GWL_STYLE, WS_POPUP);
 		SetWindowLongPtr(hWnd, GWL_EXSTYLE, WS_EX_TOPMOST);
 
@@ -128,6 +130,10 @@ void ToogleFullscren(HWND hWnd, Game* game) {
 // Windows procedure
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
+		return true;
+
 	static bool s_in_sizemove = false;
 	static bool s_in_suspend = false;
 	static bool s_minimized = false;
@@ -142,7 +148,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_PAINT:
 		if (s_in_sizemove && game) {
 			game->Tick();
-		} else {
+		}
+		else {
 			PAINTSTRUCT ps;
 			std::ignore = BeginPaint(hWnd, &ps);
 			EndPaint(hWnd, &ps);
@@ -167,7 +174,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					game->OnSuspending();
 				s_in_suspend = true;
 			}
-		} else if (s_minimized) {
+		}
+		else if (s_minimized) {
 			s_minimized = false;
 			if (s_in_suspend && game)
 				game->OnResuming();
